@@ -27,7 +27,8 @@ class Woocommerce_Financial_Export_Admin {
 	 *
 	 * @var      string
 	 */
-	protected $plugin_screen_hook_suffix = null;
+	
+	private $query;
 
 	/**
 	 * Initialize the plugin by loading admin scripts & styles and adding a
@@ -69,8 +70,8 @@ class Woocommerce_Financial_Export_Admin {
 		 * Read more about actions and filters:
 		 * http://codex.wordpress.org/Plugin_API#Hooks.2C_Actions_and_Filters
 		 */
-		add_action( '@TODO', array( $this, 'action_method_name' ) );
-		add_filter( '@TODO', array( $this, 'filter_method_name' ) );
+		//add_action( 'admin_menu', array( $this, 'get_order_statuses' ) );
+		//add_filter( '@TODO', array( $this, 'filter_method_name' ) );
 
 	}
 
@@ -205,8 +206,20 @@ class Woocommerce_Financial_Export_Admin {
 	 *
 	 * @since    1.0.0
 	 */
-	public function action_method_name() {
+	public function get_order_statuses() {
 		// @TODO: Define your action hook callback here
+		global $wpdb;
+		$query = "SELECT
+			DISTINCT(t.slug) AS status
+		FROM
+			wp_term_taxonomy x
+				JOIN wp_terms t ON x.term_id=t.term_id
+		WHERE
+			x.taxonomy='shop_order_status'";
+		foreach($wpdb->get_results($query) AS $row) {
+			$statuses[] = $row->status;
+		}
+		return $statuses;
 	}
 
 	/**

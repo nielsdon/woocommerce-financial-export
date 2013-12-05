@@ -17,10 +17,12 @@
 
 	<?php screen_icon(); ?>
 	<h2><?php echo esc_html( get_admin_page_title() ); ?></h2>
-	<form>
-		<p>Choose the items to export</p>
-		<input type="radio" name="table" value="orders"
-bla bla bla
-	<!-- @TODO: Provide markup for your options page here. -->
+<?php
+	if($_GET["status"]) {
+		include_once('generate_csv.php');
+	} else {
+		include_once('status_select.php');
+	}
+?>
 
 </div>

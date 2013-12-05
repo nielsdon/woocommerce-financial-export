@@ -21,11 +21,6 @@ class Woocommerce_Financial_Export {
 	const VERSION = '1.0.0';
 
 	/**
-	 * @TODO - Rename "plugin-name" to the name your your plugin
-	 *
-	 * Unique identifier for your plugin.
-	 *
-	 *
 	 * The variable name is used as the text domain when internationalizing strings
 	 * of text. Its value should match the Text Domain file header in the main
 	 * plugin file.
@@ -34,7 +29,7 @@ class Woocommerce_Financial_Export {
 	 *
 	 * @var      string
 	 */
-	protected $plugin_slug = 'plugin-name';
+	protected $plugin_slug = 'woocommerce-financial-export';
 
 	/**
 	 * Instance of this class.
