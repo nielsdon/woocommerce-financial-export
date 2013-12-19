@@ -221,6 +221,81 @@ class Woocommerce_Financial_Export_Admin {
 		}
 		return $statuses;
 	}
+	
+	private function get_orders_by_status($status) {
+		global $wpdb;
+		$query = "SELECT *
+		FROM
+			wp_posts p JOIN wp_postmeta m ON m.post_id=p.ID
+			JOIN wp_term_relationships tr ON tr.object_id=p.ID
+			JOIN wp_term_taxonomy tt ON tr.term_taxonomy_id=tt.term_taxonomy_id
+			JOIN wp_terms t ON tt.term_id=t.term_id
+		WHERE
+			p.post_type LIKE 'shop_order'
+		AND
+			t.slug='$status'";
+		$rows = $wpdb->get_results($query);
+		$order_id = 0;
+		$orders = array();
+		foreach($rows as $row) {
+			if($order_id != $row->ID) {
+				$orders[$counter]["tax"]=$orders[$counter]["order_tax"]+$orders[$counter]["shipping_tax"];
+			
+				$counter++;
+			}
+			$orders[$counter]["ID"]=$row->ID;
+			switch($row->meta_key) {
+				case "_billing_first_name":
+					$orders[$counter]["first_name"]=$row->meta_value;
+					break;
+				case "_billing_last_name":
+					$orders[$counter]["last_name"]=$row->meta_value;
+					break;
+				case "_billing_address_1":
+					$orders[$counter]["address"]=$row->meta_value;
+					break;
+				case "_billing_postcode":
+					$orders[$counter]["postal_code"]=$row->meta_value;
+					break;
+				case "_billing_city":
+					$orders[$counter]["city"]=$row->meta_value;
+					break;
+				case "_order_tax":
+					$orders[$counter]["order_tax"]=$row->meta_value;
+					break;
+				case "_order_shipping_tax":
+					$orders[$counter]["shipping_tax"]=$row->meta_value;
+					break;
+				case "_order_total":
+					$orders[$counter]["order_total"]=$row->meta_value;
+					break;
+			}
+			$order_id = $row->ID;
+		}
+		return $orders;
+	}
+	
+	public function generate_csv($orders) {
+		$newline="\r\n";
+		$field_delimiter=",";
+		$quote="\"";
+		$filename = "financial_export.txt";	
+		$upload_dir = wp_upload_dir();		
+		$file = $upload_dir["path"]."/".$filename;
+		$fp = fopen($file, "w");
+		fwrite($fp,"ID" . $delimiter . "First_name" . $delimiter . "Last_name" . $delimiter . "Address" . $newline);
+
+		$orders = $this->get_orders_by_status($status);
+		foreach($orders as $order) {
+			fwrite($fp,$order["ID"] . $delimiter);
+			fwrite($fp,$order["first_name"] . $delimiter);
+			fwrite($fp,$order["last_name"] . $delimiter);
+			fwrite($fp,$order["address"] . $delimiter);
+			fwrite($fp,$newline);
+		}
+		fclose($fp);
+		return $upload_dir["url"] . "/" . $filename;
+	}
 
 	/**
 	 * NOTE:     Filters are points of execution in which WordPress modifies data
