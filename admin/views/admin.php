@@ -19,7 +19,7 @@
 	<h2><?php echo esc_html( get_admin_page_title() ); ?></h2>
 <?php
 	if($_GET["status"]) {
-		include_once('generate_csv.php');
+		include_once('orders_export.php');
 	} else {
 		include_once('status_select.php');
 	}
