@@ -224,7 +224,7 @@ class Woocommerce_Financial_Export_Admin {
 	
 	private function get_orders_by_status($status) {
 		global $wpdb;
-		$query = "SELECT *
+		$query = "SELECT *, DATE_FORMAT(post_date,'%d-%m-%Y') as order_date
 		FROM
 			wp_posts p JOIN wp_postmeta m ON m.post_id=p.ID
 			JOIN wp_term_relationships tr ON tr.object_id=p.ID
@@ -235,15 +235,18 @@ class Woocommerce_Financial_Export_Admin {
 		AND
 			t.slug='$status'";
 		$rows = $wpdb->get_results($query);
-		$order_id = 0;
 		$orders = array();
+		$order_id = 0;
 		foreach($rows as $row) {
-			if($order_id != $row->ID) {
+			if($order_id != $row->ID && $order_id != 0) {
+				$counter++;
+			}			
+			if($orders[$counter]["order_tax"] && $orders[$counter]["shipping_tax"]) {
 				$orders[$counter]["tax"]=$orders[$counter]["order_tax"]+$orders[$counter]["shipping_tax"];
 			
-				$counter++;
 			}
 			$orders[$counter]["ID"]=$row->ID;
+			$orders[$counter]["order_date"]=$row->order_date;
 			switch($row->meta_key) {
 				case "_billing_first_name":
 					$orders[$counter]["first_name"]=$row->meta_value;
@@ -261,13 +264,13 @@ class Woocommerce_Financial_Export_Admin {
 					$orders[$counter]["city"]=$row->meta_value;
 					break;
 				case "_order_tax":
-					$orders[$counter]["order_tax"]=$row->meta_value;
+					$orders[$counter]["order_tax"]=round($row->meta_value,2);
 					break;
 				case "_order_shipping_tax":
-					$orders[$counter]["shipping_tax"]=$row->meta_value;
+					$orders[$counter]["shipping_tax"]=round($row->meta_value,2);
 					break;
 				case "_order_total":
-					$orders[$counter]["order_total"]=$row->meta_value;
+					$orders[$counter]["order_total"]=round($row->meta_value,2);
 					break;
 			}
 			$order_id = $row->ID;
@@ -277,20 +280,24 @@ class Woocommerce_Financial_Export_Admin {
 	
 	public function generate_csv($orders) {
 		$newline="\r\n";
-		$field_delimiter=",";
+		$delimiter=",";
 		$quote="\"";
 		$filename = "financial_export.txt";	
 		$upload_dir = wp_upload_dir();		
 		$file = $upload_dir["path"]."/".$filename;
 		$fp = fopen($file, "w");
-		fwrite($fp,"ID" . $delimiter . "First_name" . $delimiter . "Last_name" . $delimiter . "Address" . $newline);
+		fwrite($fp,"ID" . $delimiter . "Date" . $delimiter . "First_name" . $delimiter . "Last_name" . $delimiter . "Address" . $delimiter . "Postal" . $delimiter . "City" . $delimiter . "Tax" . $delimiter . "Total" . $newline);
 
-		$orders = $this->get_orders_by_status($status);
 		foreach($orders as $order) {
 			fwrite($fp,$order["ID"] . $delimiter);
+			fwrite($fp,$order["order_date"] . $delimiter);
 			fwrite($fp,$order["first_name"] . $delimiter);
 			fwrite($fp,$order["last_name"] . $delimiter);
 			fwrite($fp,$order["address"] . $delimiter);
+			fwrite($fp,$order["postal_code"] . $delimiter);
+			fwrite($fp,$order["city"] . $delimiter);
+			fwrite($fp,$order["tax"] . $delimiter);
+			fwrite($fp,$order["order_total"] . $delimiter);
 			fwrite($fp,$newline);
 		}
 		fclose($fp);
