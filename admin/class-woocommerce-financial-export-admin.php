@@ -209,11 +209,13 @@ class Woocommerce_Financial_Export_Admin {
 	public function get_order_statuses() {
 		// @TODO: Define your action hook callback here
 		global $wpdb;
+		$prefix = $wpdb->prefix;
+		
 		$query = "SELECT
 			DISTINCT(t.slug) AS status
 		FROM
-			wp_term_taxonomy x
-				JOIN wp_terms t ON x.term_id=t.term_id
+			{$prefix}term_taxonomy x
+				JOIN {$prefix}terms t ON x.term_id=t.term_id
 		WHERE
 			x.taxonomy='shop_order_status'";
 		foreach($wpdb->get_results($query) AS $row) {
@@ -224,12 +226,14 @@ class Woocommerce_Financial_Export_Admin {
 	
 	private function get_orders_by_status($status) {
 		global $wpdb;
+		$prefix = $wpdb->prefix;
+
 		$query = "SELECT *, DATE_FORMAT(post_date,'%d-%m-%Y') as order_date
 		FROM
-			wp_posts p JOIN wp_postmeta m ON m.post_id=p.ID
-			JOIN wp_term_relationships tr ON tr.object_id=p.ID
-			JOIN wp_term_taxonomy tt ON tr.term_taxonomy_id=tt.term_taxonomy_id
-			JOIN wp_terms t ON tt.term_id=t.term_id
+			{$prefix}posts p JOIN {$prefix}postmeta m ON m.post_id=p.ID
+			JOIN {$prefix}term_relationships tr ON tr.object_id=p.ID
+			JOIN {$prefix}term_taxonomy tt ON tr.term_taxonomy_id=tt.term_taxonomy_id
+			JOIN {$prefix}terms t ON tt.term_id=t.term_id
 		WHERE
 			p.post_type LIKE 'shop_order'
 		AND
