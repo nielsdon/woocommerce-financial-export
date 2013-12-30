@@ -18,11 +18,9 @@
 	<?php screen_icon(); ?>
 	<h2><?php echo esc_html( get_admin_page_title() ); ?></h2>
 <?php
+	include_once('filter.php');
 	if($_GET["status"]) {
 		include_once('orders_export.php');
-	} else {
-		include_once('status_select.php');
 	}
 ?>
-
 </div>

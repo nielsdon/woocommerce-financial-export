@@ -224,9 +224,12 @@ class Woocommerce_Financial_Export_Admin {
 		return $statuses;
 	}
 	
-	private function get_orders_by_status($status) {
+	private function get_orders_by_status($status, $date_from, $date_to) {
 		global $wpdb;
 		$prefix = $wpdb->prefix;
+		
+		if(!$date_from) { $date_from = date('Y-m-d', 0); }
+		if(!$date_to) { $date_to = date('Y-m-d'); }
 
 		$query = "SELECT *, DATE_FORMAT(post_date,'%d-%m-%Y') as order_date
 		FROM
@@ -237,7 +240,11 @@ class Woocommerce_Financial_Export_Admin {
 		WHERE
 			p.post_type LIKE 'shop_order'
 		AND
-			t.slug='$status'";
+			t.slug='$status'
+		AND
+			post_date BETWEEN '$date_from' AND '$date_to'			
+		ORDER BY
+			post_date";
 		$rows = $wpdb->get_results($query);
 		$orders = array();
 		$order_id = 0;

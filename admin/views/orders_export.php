@@ -1,5 +1,5 @@
 <?php
-$orders = $this->get_orders_by_status($_GET["status"]);
+$orders = $this->get_orders_by_status($_GET["status"], $_GET["date_from"], $_GET["date_to"]);
 ?>
 <a href="<?php echo $this->generate_csv($orders); ?>">Download export here</a>
 <?php
