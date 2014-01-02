@@ -224,13 +224,19 @@ class Woocommerce_Financial_Export_Admin {
 		return $statuses;
 	}
 	
-	private function generate_csv($status, $date_from, $date_to) {
+	private function generate_csv($status, $date_from, $date_to, $options=array()) {
 		global $wpdb;
 		$prefix = $wpdb->prefix;
-		
-		$newline="\r\n";
-		$delimiter=",";
-		$enclose="\"";
+
+		//CSV options
+		if($options["delimiter"]=="comma"){ $delimiter=","; }
+		else { $delimiter=";"; }
+		if($options["newline"]=="unix"){ $delimiter="\n"; }
+		if($options["newline"]=="mac"){ $delimiter="\r"; }
+		else { $newline="\r\n"; }
+		if($options["enclose"]=="single"){ $enclose="\'"; }
+		else { $enclose="\""; }
+
 		$filename = "financial_export_" . date('U') . ".txt";	
 		$upload_dir = wp_upload_dir();		
 		$file = $upload_dir["path"]."/".$filename;
@@ -239,7 +245,7 @@ class Woocommerce_Financial_Export_Admin {
 		if(!$date_from) { $date_from = date('Y-m-d', 0); }
 		if(!$date_to) { $date_to = date('Y-m-d'); }
 
-		echo $query = "SELECT
+		$query = "SELECT
 					'VRK' AS code,
 					'EUR' AS currency,
 					DATE_FORMAT(post_date,'%d/%m/%Y') as date, 
