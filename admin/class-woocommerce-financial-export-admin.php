@@ -224,95 +224,81 @@ class Woocommerce_Financial_Export_Admin {
 		return $statuses;
 	}
 	
-	private function get_orders_by_status($status, $date_from, $date_to) {
+	private function generate_csv($status, $date_from, $date_to) {
 		global $wpdb;
 		$prefix = $wpdb->prefix;
+		
+		$newline="\r\n";
+		$delimiter=",";
+		$enclose="\"";
+		$filename = "financial_export_" . date('U') . ".txt";	
+		$upload_dir = wp_upload_dir();		
+		$file = $upload_dir["path"]."/".$filename;
+		$url = $upload_dir["url"]."/".$filename;
 		
 		if(!$date_from) { $date_from = date('Y-m-d', 0); }
 		if(!$date_to) { $date_to = date('Y-m-d'); }
 
-		$query = "SELECT *, DATE_FORMAT(post_date,'%d-%m-%Y') as order_date
+		echo $query = "SELECT
+					'VRK' AS code,
+					'EUR' AS currency,
+					DATE_FORMAT(post_date,'%d/%m/%Y') as date, 
+					DATE_FORMAT(post_date,'%Y/%m') as period,
+					ID AS invoicenumber,
+					DATE_FORMAT(post_date,'%d/%m/%Y') as duedate, 
+					'' AS number,
+					'' AS glaccount,
+					'' AS ar,
+					'' AS project,
+					ROUND(pm1.meta_value-(pm2.meta_value+pm3.meta_value),2) AS amount,
+					'debit' AS debitcredit,
+					'' AS description,
+					ROUND(pm2.meta_value+pm3.meta_value,2) AS vatcode
 		FROM
-			{$prefix}posts p JOIN {$prefix}postmeta m ON m.post_id=p.ID
+			{$prefix}posts p 
+			JOIN {$prefix}postmeta pm1 ON pm1.post_id = ID AND pm1.meta_key LIKE '_order_total'
+			JOIN {$prefix}postmeta pm2 ON pm2.post_id = ID AND pm2.meta_key LIKE '_order_tax'
+			JOIN {$prefix}postmeta pm3 ON pm3.post_id = ID AND pm3.meta_key LIKE '_order_shipping_tax'
 			JOIN {$prefix}term_relationships tr ON tr.object_id=p.ID
 			JOIN {$prefix}term_taxonomy tt ON tr.term_taxonomy_id=tt.term_taxonomy_id
 			JOIN {$prefix}terms t ON tt.term_id=t.term_id
 		WHERE
 			p.post_type LIKE 'shop_order'
 		AND
-			t.slug='$status'
+			t.slug='{$status}'
 		AND
-			post_date BETWEEN '$date_from' AND '$date_to'			
+			post_date BETWEEN '{$date_from}' AND '{$date_to}'			
 		ORDER BY
-			post_date";
-		$rows = $wpdb->get_results($query);
-		$orders = array();
-		$order_id = 0;
-		foreach($rows as $row) {
-			if($order_id != $row->ID && $order_id != 0) {
-				$counter++;
-			}			
-			if($orders[$counter]["order_tax"] && $orders[$counter]["shipping_tax"]) {
-				$orders[$counter]["tax"]=$orders[$counter]["order_tax"]+$orders[$counter]["shipping_tax"];
-			
-			}
-			$orders[$counter]["ID"]=$row->ID;
-			$orders[$counter]["order_date"]=$row->order_date;
-			switch($row->meta_key) {
-				case "_billing_first_name":
-					$orders[$counter]["first_name"]=$row->meta_value;
-					break;
-				case "_billing_last_name":
-					$orders[$counter]["last_name"]=$row->meta_value;
-					break;
-				case "_billing_address_1":
-					$orders[$counter]["address"]=$row->meta_value;
-					break;
-				case "_billing_postcode":
-					$orders[$counter]["postal_code"]=$row->meta_value;
-					break;
-				case "_billing_city":
-					$orders[$counter]["city"]=$row->meta_value;
-					break;
-				case "_order_tax":
-					$orders[$counter]["order_tax"]=round($row->meta_value,2);
-					break;
-				case "_order_shipping_tax":
-					$orders[$counter]["shipping_tax"]=round($row->meta_value,2);
-					break;
-				case "_order_total":
-					$orders[$counter]["order_total"]=round($row->meta_value,2);
-					break;
-			}
-			$order_id = $row->ID;
-		}
-		return $orders;
-	}
-	
-	public function generate_csv($orders) {
-		$newline="\r\n";
-		$delimiter=",";
-		$quote="\"";
-		$filename = "financial_export.txt";	
-		$upload_dir = wp_upload_dir();		
-		$file = $upload_dir["path"]."/".$filename;
-		$fp = fopen($file, "w");
-		fwrite($fp,"ID" . $delimiter . "Date" . $delimiter . "First_name" . $delimiter . "Last_name" . $delimiter . "Address" . $delimiter . "Postal" . $delimiter . "City" . $delimiter . "Tax" . $delimiter . "Total" . $newline);
-
-		foreach($orders as $order) {
-			fwrite($fp,$order["ID"] . $delimiter);
-			fwrite($fp,$order["order_date"] . $delimiter);
-			fwrite($fp,$order["first_name"] . $delimiter);
-			fwrite($fp,$order["last_name"] . $delimiter);
-			fwrite($fp,$order["address"] . $delimiter);
-			fwrite($fp,$order["postal_code"] . $delimiter);
-			fwrite($fp,$order["city"] . $delimiter);
-			fwrite($fp,$order["tax"] . $delimiter);
-			fwrite($fp,$order["order_total"] . $delimiter);
-			fwrite($fp,$newline);
+			post_date
+		INTO OUTFILE '{$file}'
+		FIELDS TERMINATED BY '{$delimiter}'
+		ENCLOSED BY '{$enclose}'
+		LINES TERMINATED BY '{$newline}'";
+		$wpdb->query($query);
+		$old_content = "";
+		$fp = fopen($file, "r");
+		$counter=0;
+		if ($fp) {
+		    while (($line = fgets($fp)) !== false) {
+	        // process the line read.
+	        	$old_content .= str_replace('debit','credit',$line);
+	        	$old_content .= $line;
+	        	$counter++;
+		    }
+		} else {
+		    // error opening the file.
 		}
 		fclose($fp);
-		return $upload_dir["url"] . "/" . $filename;
+	
+		if( $fp = fopen($file, "w") ) {
+			$headers = "Code" . $delimiter . "Currency" . $delimiter . "Date" . $delimiter . "Period" . $delimiter . "Invoicenumber" . $delimiter . "Duedate" . $delimiter . "Number" . $delimiter . "GL-Account" . $delimiter . "AR" . $delimiter . "Project" . $delimiter . "Amount" . $delimiter . "Debitcredit" . $delimiter . "Description" . $delimiter . "Vatcode" . $newline;
+			fwrite($fp,$headers);
+			fwrite($fp,$old_content);
+			fclose($fp);
+		} else {
+			echo "Error opening file";
+		}
+		return $url;
 	}
 
 	/**
