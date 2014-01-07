@@ -10,6 +10,15 @@ if($_GET["endline"]) { $endline = $_GET["endline"]; } else { $endline = "windows
 if($_GET["delimiter"]) { $delimiter = $_GET["delimiter"]; } else { $delimiter = "comma"; }
 if($_GET["enclose"]) { $enclose = $_GET["enclose"]; } else { $enclose = "double"; }
 
+//set default formatting options
+if($_GET["decimal"]) { $decimal = $_GET["decimal"]; } else { $decimal = "comma"; }
+
+//set default ledget options
+if($_GET["turnover"]) { $turnover = $_GET["turnover"]; } else { $turnover = "8000"; }
+if($_GET["debtors"]) { $debtors = $_GET["debtors"]; } else { $debtors = "1300"; }
+if($_GET["vat"]) { $vat = $_GET["vat"]; } else { $vat = "1000"; }
+if($_GET["vatcode"]) { $vatcode = $_GET["vatcode"]; } else { $vatcode = "VH"; }
+
 ?>
 <form>
 	<input type="hidden" name="page" value="<?php echo $this->plugin_slug ?>"/>
@@ -32,11 +41,23 @@ if($_GET["enclose"]) { $enclose = $_GET["enclose"]; } else { $enclose = "double"
 		<input type="radio" name="endline" value="unix"<?php if($endline=="unix"){ echo " checked=\"true\""; } ?>/>&#92;n (linux/unix)<br/>
 	</td></tr>
 	<tr><td>Field delimiter:</td><td><input type="radio" name="delimiter" value="comma"<?php if($delimiter=="comma"){ echo " checked=\"true\""; } ?>/>Comma (,)<br/>
-		<input type="radio" name="delimiter" value="semicolon"<?php if($delimiter=="semicolon"){ echo " checked=\"true\""; } ?>/>Semicolon (;)</td></tr>
+		<input type="radio" name="delimiter" value="semicolon"<?php if($delimiter=="semicolon"){ echo " checked=\"true\""; } ?>/>Semicolon (;)<br/>
+		<input type="radio" name="delimiter" value="tab"<?php if($delimiter=="tab"){ echo " checked=\"true\""; } ?>/>Tab (	)</td></tr>
 	<tr><td>Field enclose:</td><td><input type="radio" name="enclose" value="single"<?php if($enclose=="single"){ echo " checked=\"true\""; } ?>/>Single quotes (')<br/>
 		<input type="radio" name="enclose" value="double"<?php if($enclose=="double"){ echo " checked=\"true\""; } ?>/>Double quotes (")<br/>
 		<input type="radio" name="enclose" value="none"<?php if($enclose=="none"){ echo " checked=\"true\""; } ?>/>None</td></tr>
-</table>
+	
+	<tr><td><strong>Formatting Options</strong></td></tr>
+	<tr><td>Decimal separation:</td><td><input type="radio" name="decimal" value="period"<?php if($decimal=="period"){ echo " checked=\"true\""; } ?>/>Period (.)<br/>
+	<input type="radio" name="decimal" value="comma"<?php if($decimal=="comma"){ echo " checked=\"true\""; } ?>/>Comma (,)<br/>
+	</td></tr>
+	
+	<tr><td><strong>Ledger Options</strong></td></tr>
+	<tr><td>Ledger number turnover (credit):</td><td><input id="turnover" type="text" name="turnover" value="<?php echo $turnover; ?>"/></td></tr>
+	<tr><td>Ledger number debtors (debit):</td><td><input id="debtors" type="text" name="debtors" value="<?php echo $debtors; ?>"/></td></tr>
+	<tr><td>Ledger number VAT (debit):</td><td><input id="vat" type="text" name="vat" value="<?php echo $vat; ?>"/></td></tr>
+	<tr><td>VAT code:</td><td><input id="vatcode" type="text" name="vatcode" value="<?php echo $vatcode; ?>"/></td></tr>
+	</table>
 
 <script type="text/javascript">
 
@@ -52,6 +73,6 @@ jQuery(document).ready(function() {
 });
 
 </script>
-<input type="submit" value="Export"/>
+<input type="submit" value="Generate CSV"/>
 </form>
 <hr/>

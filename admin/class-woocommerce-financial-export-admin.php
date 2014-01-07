@@ -230,21 +230,35 @@ class Woocommerce_Financial_Export_Admin {
 
 		//CSV options
 		if($options["delimiter"]=="comma"){ $delimiter=","; }
+		elseif($options["delimiter"]=="tab"){ $delimiter="\t"; }
 		else { $delimiter=";"; }
 		if($options["newline"]=="unix"){ $delimiter="\n"; }
 		if($options["newline"]=="mac"){ $delimiter="\r"; }
 		else { $newline="\r\n"; }
 		if($options["enclose"]=="single"){ $enclose="\'"; }
 		else { $enclose="\""; }
+		
+		//formatting options
+		if($options["decimal"]=="comma"){ $decimal=","; }
+		else { $decimal=".";}
+		
+		//ledger options
+		$debtors = $options["debtors"];
+		$turnover = $options["turnover"];
+		$vat = $options["vat"];
+		$vatcode = $options["vatcode"];
 
+		//file data
 		$filename = "financial_export_" . date('U') . ".txt";	
 		$upload_dir = wp_upload_dir();		
 		$file = $upload_dir["path"]."/".$filename;
 		$url = $upload_dir["url"]."/".$filename;
 		
+		//set default date range
 		if(!$date_from) { $date_from = date('Y-m-d', 0); }
 		if(!$date_to) { $date_to = date('Y-m-d'); }
 
+		//build query
 		$query = "SELECT
 					'VRK' AS code,
 					'EUR' AS currency,
@@ -253,13 +267,13 @@ class Woocommerce_Financial_Export_Admin {
 					ID AS invoicenumber,
 					DATE_FORMAT(post_date,'%d/%m/%Y') as duedate, 
 					'' AS number,
-					'' AS glaccount,
+					'ledger' AS glaccount,
 					'' AS ar,
 					'' AS project,
-					ROUND(pm1.meta_value-(pm2.meta_value+pm3.meta_value),2) AS amount,
+					REPLACE(ROUND(pm1.meta_value-(pm2.meta_value+pm3.meta_value),2),'.','{$decimal}') AS amount,
+					REPLACE(ROUND(pm1.meta_value,2),'.','{$decimal}') AS amountinclvat,
 					'debit' AS debitcredit,
-					'' AS description,
-					ROUND(pm2.meta_value+pm3.meta_value,2) AS vatcode
+					'' AS description
 		FROM
 			{$prefix}posts p 
 			JOIN {$prefix}postmeta pm1 ON pm1.post_id = ID AND pm1.meta_key LIKE '_order_total'
@@ -275,31 +289,48 @@ class Woocommerce_Financial_Export_Admin {
 		AND
 			post_date BETWEEN '{$date_from}' AND '{$date_to}'			
 		ORDER BY
-			post_date
+			post_date";
+			/*
 		INTO OUTFILE '{$file}'
 		FIELDS TERMINATED BY '{$delimiter}'
 		ENCLOSED BY '{$enclose}'
 		LINES TERMINATED BY '{$newline}'";
-		$wpdb->query($query);
-		$old_content = "";
-		$fp = fopen($file, "r");
-		$counter=0;
-		if ($fp) {
-		    while (($line = fgets($fp)) !== false) {
-	        // process the line read.
-	        	$old_content .= str_replace('debit','credit',$line);
-	        	$old_content .= $line;
-	        	$counter++;
-		    }
-		} else {
-		    // error opening the file.
-		}
-		fclose($fp);
-	
+		*/
+		$rows = $wpdb->get_results($query);
 		if( $fp = fopen($file, "w") ) {
 			$headers = "Code" . $delimiter . "Currency" . $delimiter . "Date" . $delimiter . "Period" . $delimiter . "Invoicenumber" . $delimiter . "Duedate" . $delimiter . "Number" . $delimiter . "GL-Account" . $delimiter . "AR" . $delimiter . "Project" . $delimiter . "Amount" . $delimiter . "Debitcredit" . $delimiter . "Description" . $delimiter . "Vatcode" . $newline;
 			fwrite($fp,$headers);
-			fwrite($fp,$old_content);
+			foreach($rows as $row) {
+				fwrite($fp, $row->code . $delimiter);
+				fwrite($fp, $row->currency . $delimiter);
+				fwrite($fp, $row->date . $delimiter);
+				fwrite($fp, $row->period . $delimiter);
+				fwrite($fp, $row->invoicenumber . $delimiter);
+				fwrite($fp, $row->duedate . $delimiter);
+				fwrite($fp, $row->number . $delimiter);
+				fwrite($fp, $turnover . $delimiter);
+				fwrite($fp, $row->ar . $delimiter);
+				fwrite($fp, $row->project . $delimiter);
+				fwrite($fp, $row->amount . $delimiter);
+				fwrite($fp, "credit" . $delimiter);
+				fwrite($fp, $row->description . $delimiter);
+				fwrite($fp, $vatcode . $newline);
+				
+				fwrite($fp, $row->code . $delimiter);
+				fwrite($fp, $row->currency . $delimiter);
+				fwrite($fp, $row->date . $delimiter);
+				fwrite($fp, $row->period . $delimiter);
+				fwrite($fp, $row->invoicenumber . $delimiter);
+				fwrite($fp, $row->duedate . $delimiter);
+				fwrite($fp, $row->number . $delimiter);
+				fwrite($fp, $debtors . $delimiter);
+				fwrite($fp, $vat . $delimiter);
+				fwrite($fp, $row->project . $delimiter);
+				fwrite($fp, $row->amountinclvat . $delimiter);
+				fwrite($fp, "debit" . $delimiter);
+				fwrite($fp, $row->description . $delimiter);
+				fwrite($fp, "" . $newline);
+			}
 			fclose($fp);
 		} else {
 			echo "Error opening file";
