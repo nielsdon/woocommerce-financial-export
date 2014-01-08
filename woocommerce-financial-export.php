@@ -11,7 +11,7 @@
  * Plugin Name:       Woocommerce Financial Export
  * Plugin URI:        https://github.com/nielsdon/woocommerce-financial-export
  * Description:       A simple but functional Woocommerce Financial exporter tool. Exports orders, customers, etc.
- * Version:           0.0.1
+ * Version:           0.4
  * Author:            Niels Donninger
  * Author URI:        http://donninger.nl
  * Text Domain:       en_US
